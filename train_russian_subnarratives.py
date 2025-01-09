@@ -1,7 +1,7 @@
 from sklearn.model_selection import RepeatedStratifiedKFold
 import os
 import numpy as np
-from transformers import AutoTokenizer, AutoModelForSequenceClassification, Trainer, TrainingArguments, EarlyStoppingCallback
+from transformers import XLMRobertaTokenizer, XLMRobertaForSequenceClassification, Trainer, TrainingArguments, EarlyStoppingCallback
 from sklearn.metrics import f1_score
 from scipy.special import expit
 from datasets import Dataset
@@ -36,11 +36,12 @@ def compute_metrics(pred):
     return {"f1_macro": f1}
 
 # --- Training with Repeated KFold ---
+# --- Training with Repeated KFold ---
 def train_with_repeated_kfold_and_save(texts, labels):
     dataset = Dataset.from_dict({"text": texts, "label": labels.tolist()})
     dataset = dataset.map(tokenize, batched=True)
 
-    rskf = RepeatedStratifiedKFold(n_splits=5, n_repeats=10, random_state=42)
+    rskf = RepeatedStratifiedKFold(n_splits=5, n_repeats=2, random_state=42)  # Adjusted to 10 repeats for consistency
     labels_flat = labels.argmax(axis=1)
 
     all_f1_scores = []
@@ -50,8 +51,8 @@ def train_with_repeated_kfold_and_save(texts, labels):
         train_dataset = dataset.select(train_idx)
         val_dataset = dataset.select(val_idx)
 
-        model = AutoModelForSequenceClassification.from_pretrained(
-            "Vikhrmodels/Vikhr-7B-instruct_0.2", num_labels=labels.shape[1]
+        model = XLMRobertaForSequenceClassification.from_pretrained(
+            "xlm-roberta-base", num_labels=labels.shape[1]
         )
 
         # Define output directories
@@ -63,18 +64,17 @@ def train_with_repeated_kfold_and_save(texts, labels):
             save_strategy="epoch",
             output_dir=output_dir,  # Save results to Google Drive
             logging_dir=logging_dir,  # Save logs to Google Drive
-            per_device_train_batch_size=4,  # Reduced batch size for efficiency
-            per_device_eval_batch_size=4,
-            gradient_accumulation_steps=4,  # Simulate larger batch size
+            per_device_train_batch_size=8,  # Increased batch size for efficiency
+            per_device_eval_batch_size=8,
             num_train_epochs=50,
             warmup_steps=500,
             weight_decay=0.01,
-            logging_steps=100,
+            logging_steps=10,
             eval_steps=500,
             load_best_model_at_end=True,
             metric_for_best_model="f1_macro",
-            learning_rate=2e-5,  # Adjusted learning rate for stability
-            lr_scheduler_type="linear",
+            learning_rate=3e-5,  # Adjusted learning rate for stability
+            lr_scheduler_type="linear ",
             fp16=True
         )
 
@@ -85,7 +85,7 @@ def train_with_repeated_kfold_and_save(texts, labels):
             eval_dataset=val_dataset,
             tokenizer=tokenizer,
             compute_metrics=compute_metrics,
-            callbacks=[EarlyStoppingCallback(early_stopping_patience=5)]
+            callbacks=[EarlyStoppingCallback(early_stopping_patience=10)]
         )
 
         trainer.train()
@@ -117,8 +117,8 @@ def train_with_repeated_kfold_and_save(texts, labels):
     # Save final metrics
     with open("/content/drive/MyDrive/russian_subnarrative_model/final_metrics.json", "w") as f:
         json.dump({"mean_f1": mean_f1, "fold_f1_scores": all_f1_scores}, f, indent=4)
-        
     return mean_f1
+
 
 # --- Main Script ---
 if __name__ == "__main__":
@@ -135,12 +135,7 @@ if __name__ == "__main__":
     print("Preparing subnarrative labels...")
     texts, labels, label_to_idx = prepare_labels_for_subnarratives(training_data, all_labels)
 
-    
-    tokenizer = AutoTokenizer.from_pretrained("Vikhrmodels/Vikhr-7B-instruct_0.2")
-
-    # Add a padding token if it doesn't exist
-    if tokenizer.pad_token is None:
-        tokenizer.add_special_tokens({'pad_token': tokenizer.eos_token})
+    tokenizer = XLMRobertaTokenizer.from_pretrained("xlm-roberta-base")
 
     print("Training model...")
     mean_f1 = train_with_repeated_kfold_and_save(texts, labels)
