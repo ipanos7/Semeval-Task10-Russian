@@ -137,5 +137,9 @@ if __name__ == "__main__":
 
     tokenizer = AutoTokenizer.from_pretrained("Vikhrmodels/Vikhr-7B-instruct_0.2")
 
+    # Add a padding token if it doesn't exist
+    if tokenizer.pad_token is None:
+        tokenizer.add_special_tokens({'pad_token': tokenizer.eos_token})
+
     print("Training with Repeated Stratified K-Fold and saving the model...")
     train_with_repeated_kfold_and_save(texts, labels)

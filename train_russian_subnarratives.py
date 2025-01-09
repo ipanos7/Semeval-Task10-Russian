@@ -135,7 +135,12 @@ if __name__ == "__main__":
     print("Preparing subnarrative labels...")
     texts, labels, label_to_idx = prepare_labels_for_subnarratives(training_data, all_labels)
 
+    
     tokenizer = AutoTokenizer.from_pretrained("Vikhrmodels/Vikhr-7B-instruct_0.2")
+
+    # Add a padding token if it doesn't exist
+    if tokenizer.pad_token is None:
+        tokenizer.add_special_tokens({'pad_token': tokenizer.eos_token})
 
     print("Training model...")
     mean_f1 = train_with_repeated_kfold_and_save(texts, labels)
