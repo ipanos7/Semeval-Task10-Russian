@@ -57,18 +57,20 @@ def train_with_repeated_kfold_and_save(texts, labels):
         )
 
         # Define output directories
-        output_dir = f"/content/drive/MyDrive/russian_narrative_model/results_fold_{fold}"
-        logging_dir = f"/content/drive/MyDrive/russian_narrative_model/logs_fold_{fold}"
+        output_dir = f"./results_fold_{fold}"  # Example path
+        if not os.path.exists(output_dir):
+            os.makedirs(output_dir)
 
         training_args = TrainingArguments(
             evaluation_strategy="epoch",
             save_strategy="epoch",
             output_dir=output_dir,  # Save locally
-            logging_dir=logging_dir,  # Save logs locally
+            logging_dir=f"{output_dir}/logs",  # Save logs locally
             per_device_train_batch_size=8,  # Increased batch size
             per_device_eval_batch_size=8,
-            num_train_epochs=50,
+            num_train_epochs=20,
             warmup_steps=500,
+            save_total_limit=1,
             weight_decay=0.01,
             logging_steps=100,
             eval_steps=100,
