@@ -74,7 +74,7 @@ def train_with_repeated_kfold_and_save(texts, labels):
             eval_steps=500,
             load_best_model_at_end=True,
             metric_for_best_model="f1_macro",
-            learning_rate=3e-5,
+            learning_rate=5e-5,
             lr_scheduler_type="linear",
             fp16=True
         )
