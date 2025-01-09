@@ -71,7 +71,7 @@ def train_with_repeated_kfold_and_save(texts, labels):
             warmup_steps=500,
             weight_decay=0.01,
             logging_steps=100,
-            eval_steps=500,
+            eval_steps=100,
             load_best_model_at_end=True,
             metric_for_best_model="f1_macro",
             learning_rate=5e-5,
